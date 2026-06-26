@@ -24,6 +24,7 @@ let package = Package(
         .package(url: "https://github.com/swift-primitives/swift-storage-generational-primitives.git", branch: "main"),
         .package(url: "https://github.com/swift-primitives/swift-memory-heap-primitives.git", branch: "main"),
         .package(url: "https://github.com/swift-primitives/swift-memory-allocation-primitives.git", branch: "main"),
+        .package(url: "https://github.com/swift-primitives/swift-shared-primitives.git", branch: "main"),
     ],
     targets: [
 
@@ -37,6 +38,7 @@ let package = Package(
                 .product(name: "Memory Heap Primitives", package: "swift-memory-heap-primitives"),
                 .product(name: "Memory Allocator Primitive", package: "swift-memory-allocation-primitives"),
                 .product(name: "Memory Allocator Pool Primitives", package: "swift-memory-allocation-primitives"),
+                .product(name: "Shared Primitive", package: "swift-shared-primitives"),
             ]
         ),
 

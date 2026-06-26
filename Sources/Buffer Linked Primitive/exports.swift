@@ -7,3 +7,4 @@
 @_exported public import Memory_Heap_Primitives
 @_exported public import Storage_Generational_Primitives
 @_exported public import Store_Primitive
+@_exported public import Shared_Primitive

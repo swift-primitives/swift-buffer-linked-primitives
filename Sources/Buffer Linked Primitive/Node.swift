@@ -37,3 +37,10 @@ public struct Node<Element: ~Copyable, let N: Int>: ~Copyable {
         self.links = links
     }
 }
+
+// MARK: - Conditional Conformance
+
+/// A node is `Copyable` exactly when its element is: the links are an `InlineArray` of trivially
+/// `Copyable` generational handles. This is the leaf of the S5 copyability chain — it is what
+/// makes `Shared<Node<E, N>, …>` (and thus `Buffer<Shared<…>>.Linked`) `Copyable` when `E` is.
+extension Node: Copyable where Element: Copyable {}
