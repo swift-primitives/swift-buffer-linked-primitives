@@ -12,72 +12,47 @@ let package = Package(
         .visionOS(.v26),
     ],
     products: [
+        // MARK: - Type module (the lean ~Copyable Buffer.Linked type over its storage substrate)
         .library(name: "Buffer Linked Primitive", targets: ["Buffer Linked Primitive"]),
+        // MARK: - [MOD-005] umbrella (re-exports the type module and the Buffer/Storage/Memory vocabulary)
         .library(name: "Buffer Linked Primitives", targets: ["Buffer Linked Primitives"]),
-        .library(name: "Buffer Linked Inline Primitives", targets: ["Buffer Linked Inline Primitives"]),
         .library(name: "Buffer Linked Primitives Test Support", targets: ["Buffer Linked Primitives Test Support"]),
     ],
     dependencies: [
-        .package(path: "../swift-buffer-primitives"),
-        .package(path: "../swift-storage-primitives"),
-        .package(path: "../swift-storage-pool-primitives"),
-        .package(path: "../swift-link-primitives"),
-        .package(path: "../swift-index-primitives"),
-        .package(path: "../swift-affine-primitives"),
-        .package(path: "../swift-ordinal-primitives"),
-        .package(path: "../swift-memory-primitives"),
-        .package(path: "../swift-sequence-primitives"),
-        .package(path: "../swift-cardinal-primitives"),
+        .package(url: "https://github.com/swift-primitives/swift-buffer-primitives.git", branch: "main"),
+        .package(url: "https://github.com/swift-primitives/swift-storage-primitives.git", branch: "main"),
+        .package(url: "https://github.com/swift-primitives/swift-storage-generational-primitives.git", branch: "main"),
+        .package(url: "https://github.com/swift-primitives/swift-memory-heap-primitives.git", branch: "main"),
+        .package(url: "https://github.com/swift-primitives/swift-memory-allocation-primitives.git", branch: "main"),
     ],
     targets: [
+
+        // MARK: - Type module — the un-phantomed Buffer<S>.Linked<N> over generational node storage
         .target(
             name: "Buffer Linked Primitive",
             dependencies: [
                 .product(name: "Buffer Primitive", package: "swift-buffer-primitives"),
-                .product(name: "Buffer Growth Primitives", package: "swift-buffer-primitives"),
-                .product(name: "Storage Pool Primitives", package: "swift-storage-pool-primitives"),
-                .product(name: "Storage Inline Primitives", package: "swift-storage-primitives"),
-                .product(name: "Storage Initialization Primitives", package: "swift-storage-primitives"),
-                .product(name: "Link Primitives", package: "swift-link-primitives"),
-                .product(name: "Index Primitives", package: "swift-index-primitives"),
-                .product(name: "Memory Primitives", package: "swift-memory-primitives"),
-                .product(name: "Affine Primitives", package: "swift-affine-primitives"),
-                .product(name: "Ordinal Primitives", package: "swift-ordinal-primitives"),
+                .product(name: "Store Primitive", package: "swift-storage-primitives"),
+                .product(name: "Storage Generational Primitives", package: "swift-storage-generational-primitives"),
+                .product(name: "Memory Heap Primitives", package: "swift-memory-heap-primitives"),
+                .product(name: "Memory Allocator Primitive", package: "swift-memory-allocation-primitives"),
+                .product(name: "Memory Allocator Pool Primitives", package: "swift-memory-allocation-primitives"),
             ]
         ),
+
+        // MARK: - Umbrella
         .target(
             name: "Buffer Linked Primitives",
             dependencies: [
-                "Buffer Linked Primitive",
-                .product(name: "Storage Pool Primitives", package: "swift-storage-pool-primitives"),
-                .product(name: "Link Primitives", package: "swift-link-primitives"),
-                .product(name: "Index Primitives", package: "swift-index-primitives"),
-                .product(name: "Memory Primitives", package: "swift-memory-primitives"),
-                .product(name: "Sequence Primitives", package: "swift-sequence-primitives"),
+                "Buffer Linked Primitive"
             ]
         ),
-        .target(
-            name: "Buffer Linked Inline Primitives",
-            dependencies: [
-                "Buffer Linked Primitive",
-                "Buffer Linked Primitives",
-                .product(name: "Storage Pool Primitives", package: "swift-storage-pool-primitives"),
-                .product(name: "Storage Inline Primitives", package: "swift-storage-primitives"),
-                .product(name: "Link Primitives", package: "swift-link-primitives"),
-                .product(name: "Index Primitives", package: "swift-index-primitives"),
-                .product(name: "Memory Primitives", package: "swift-memory-primitives"),
-                .product(name: "Sequence Primitives", package: "swift-sequence-primitives"),
-            ]
-        ),
+
         // MARK: - Test Support
         .target(
             name: "Buffer Linked Primitives Test Support",
             dependencies: [
-                "Buffer Linked Primitives",
-                "Buffer Linked Inline Primitives",
-                .product(name: "Cardinal Primitives", package: "swift-cardinal-primitives"),
-                .product(name: "Index Primitives", package: "swift-index-primitives"),
-                .product(name: "Memory Primitives Test Support", package: "swift-memory-primitives"),
+                "Buffer Linked Primitives"
             ],
             path: "Tests/Support"
         ),
@@ -86,10 +61,6 @@ let package = Package(
         .testTarget(
             name: "Buffer Linked Primitives Tests",
             dependencies: ["Buffer Linked Primitives", "Buffer Linked Primitives Test Support"]
-        ),
-        .testTarget(
-            name: "Buffer Linked Inline Primitives Tests",
-            dependencies: ["Buffer Linked Inline Primitives", "Buffer Linked Primitives Test Support"]
         ),
     ],
     swiftLanguageModes: [.v6]

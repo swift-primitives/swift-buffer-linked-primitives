@@ -1,87 +1,110 @@
-import Ordinal_Primitives_Standard_Library_Integration
-import Affine_Primitives_Standard_Library_Integration
-import Index_Primitives
-import Storage_Pool_Primitives
+// ===----------------------------------------------------------------------===//
+//
+// This source file is part of the swift-primitives open source project
+//
+// Copyright (c) 2024-2026 Coen ten Thije Boonkkamp and the swift-primitives project authors
+// Licensed under Apache License v2.0
+//
+// See LICENSE for license information
+//
+// ===----------------------------------------------------------------------===//
 
-extension Buffer where Element: ~Copyable {
+public import Buffer_Primitive
+public import Storage_Generational_Primitives
+public import Store_Primitive
 
-    /// A linked list backed by pool storage, parameterized by link count.
+extension Buffer where S: ~Copyable {
+
+    /// A linked list over generational node storage, parameterized by link count.
     ///
-    /// Uses `Storage<Node>.Pool` for O(1) node allocation/deallocation
-    /// with slot reuse. Supports double-ended insert/remove operations.
+    /// The `storage` field is a genuinely varying generic substrate; the full spelling is
+    /// `Buffer<Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<Node<Element, N>>>.Linked<N>`,
+    /// where the substrate's element is the node and the buffer's logical element is the node's
+    /// `element` payload (named by each operation). Links are generational handles
+    /// (`Store.Generational.Handle?`, where `nil` marks the end of the list), so no recursive type
+    /// arises.
     ///
     /// ## Link Count (N)
     ///
-    /// - `Buffer<Element>.Linked<1>`: Singly-linked (next only, 1 link per node)
-    /// - `Buffer<Element>.Linked<2>`: Doubly-linked (next + prev, 2 links per node)
+    /// - `N == 1`: singly-linked (next only; `removeBack` is O(n))
+    /// - `N >= 2`: doubly-linked (next + prev; `removeBack` is O(1))
     ///
-    /// ## Pool-Backed Linked List
+    /// ## Teardown
     ///
-    /// Unlike Ring and Linear (contiguous) or Slab (sparse), Linked stores
-    /// elements in pool-allocated nodes with explicit links.
-    /// This provides O(1) insert/remove at both ends without shifting.
+    /// This buffer carries no deinitializer and no teardown logic: liveness is tracked by the
+    /// generational store (occupancy plus generation tokens), whose deinitializer destroys exactly
+    /// the occupied nodes — including their elements — before the pool frees the bytes. The buffer
+    /// is a thin access discipline (head and tail cursors plus links).
     ///
-    /// ## Reference-Semantic Storage
+    /// ## Move-only
     ///
-    /// `Storage<Node>.Pool` is a `final class`, making the pool reference
-    /// always Copyable. This enables `Buffer.Linked` to be conditionally
-    /// Copyable when `Element: Copyable`, with CoW semantics via
-    /// `isKnownUniquelyReferenced`.
-    ///
-    /// ## Node Layout
-    ///
-    /// Each node stores the element value plus `InlineArray<N, Index<Node>>` links.
-    /// Convention: `links[0]` = next, `links[1]` = prev (when N >= 2).
-    /// The pool's sentinel (`capacity.map(Ordinal.init)`) serves as the
-    /// null link (end-of-list).
-    ///
-    /// ## Performance
-    ///
-    /// | Operation | N=1 (singly) | N=2 (doubly) |
-    /// |-----------|:------------:|:------------:|
-    /// | insertFront | O(1) | O(1) |
-    /// | insertBack | O(1) | O(1) |
-    /// | removeFront | O(1) | O(1) |
-    /// | removeBack | O(n) traverse | O(1) |
-    /// | forEach | O(n) | O(n) |
-    /// | forEachReversed | N/A | O(n) |
-    /// | Memory per node | Element + 1 Index | Element + 2 Index |
-    ///
-    /// ## Automatic Cleanup
-    ///
-    /// `Storage<Node>.Pool`'s deinit iterates `_allocationBits.ones` and
-    /// deinitializes all allocated nodes (including their elements).
-    /// No explicit cleanup is needed in `Buffer.Linked`.
+    /// `Buffer.Linked` is move-only over its move-only substrate; value semantics are not provided
+    /// at this layer.
+    @frozen
     public struct Linked<let N: Int>: ~Copyable {
-        @usableFromInline
-        package var header: Header
 
+        /// The generational node store.
         @usableFromInline
-        package var storage: Storage<Node>.Pool
+        package var storage: S
+
+        /// Handle of the first node; `nil` when empty.
+        @usableFromInline
+        package var head: Store.Generational.Handle?
+
+        /// Handle of the last node; `nil` when empty.
+        @usableFromInline
+        package var tail: Store.Generational.Handle?
+
+        /// Number of elements (mirrors the storage's live occupancy; stored so the generic
+        /// surface needs no concrete `S` constraint).
+        @usableFromInline
+        package var _count: Int
+
+        /// Node capacity of the current storage (updated on growth).
+        @usableFromInline
+        package var _capacity: Int
 
         @inlinable
-        package init(header: Header, storage: Storage<Node>.Pool) {
-            self.header = header
+        package init(storage: consuming S, capacity: Int) {
             self.storage = storage
+            self.head = nil
+            self.tail = nil
+            self._count = 0
+            self._capacity = capacity
         }
     }
 }
 
+// MARK: - Generic surface (S-independent stored state)
+
+extension Buffer.Linked where S: ~Copyable {
+    /// Number of elements in the list.
+    @inlinable
+    public var count: Int { _count }
+
+    /// Whether the list is empty.
+    @inlinable
+    public var isEmpty: Bool { _count == 0 }
+
+    /// Node capacity (maximum number of nodes before growth is required).
+    @inlinable
+    public var capacity: Int { _capacity }
+
+    /// Whether the node store is full (no free nodes remain).
+    @inlinable
+    public var isFull: Bool { _count == _capacity }
+}
+
 // MARK: - Conditional Conformances (Linked)
 
-extension Buffer.Linked: Copyable where Element: Copyable {}
 /// Sendable conformance for `Buffer.Linked`.
 ///
 /// ## Safety Invariant
 ///
-/// `Buffer.Linked` is `~Copyable` and owns `Storage.Pool`. Single ownership
-/// enforced; cross-thread transfer is a move.
-///
-/// ## Intended Use
-///
-/// - Transferring a pool-backed linked buffer to a worker thread.
+/// `Buffer.Linked` exclusively owns its generational node store (move-only, single owner);
+/// cross-thread transfer is a move.
 ///
 /// ## Non-Goals
 ///
 /// - Not a shared concurrent linked buffer.
-extension Buffer.Linked: @unsafe @unchecked Sendable where Element: Sendable {}
+extension Buffer.Linked: @unsafe @unchecked Sendable where S: Sendable {}

@@ -1,0 +1,8 @@
+# .github/metadata.yaml
+description: "A move-only, pool-backed linked list over the Buffer namespace — singly- or doubly-linked by a compile-time link count, with O(1) front/back insert and remove; supports ~Copyable elements."
+topics:
+  - primitives
+  - buffer
+homepage: "https://swift-institute.org"
+readme:
+  family: E

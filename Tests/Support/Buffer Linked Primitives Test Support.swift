@@ -1,28 +1,23 @@
 public import Buffer_Linked_Primitives
-public import Index_Primitives
-public import Cardinal_Primitives
 
-// MARK: - Linked
+// MARK: - Test conveniences over the storage column
 
-extension Buffer.Linked {
-    // Swift 6.2 CopyPropagation crash: double-consume of Property.Inout.Typed.Valued
-    public init(_ elements: [Element], minimumCapacity: UInt = 0) {
-        let cap = Index<Node>.Count(Cardinal(Swift.max(UInt(elements.count), minimumCapacity)))
-        var buffer = Self(minimumCapacity: cap)
+/// The doubly-linked heap column.
+public typealias DoublyLinked<E: ~Copyable> =
+    Buffer<Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<Node<E, 2>>>.Linked<2>
+
+/// The singly-linked heap column.
+public typealias SinglyLinked<E: ~Copyable> =
+    Buffer<Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<Node<E, 1>>>.Linked<1>
+
+extension Buffer.Linked where S: ~Copyable {
+    /// Creates a linked list populated back-to-back from an array (test convenience).
+    @inlinable
+    public init<E>(_ elements: [E], minimumCapacity: Int) throws(Self.Error)
+    where S == Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<Node<E, N>> {
+        self.init(minimumCapacity: Index<E>.Count(UInt(Swift.max(minimumCapacity, Swift.max(elements.count, 1)))))
         for element in elements {
-            buffer.insert.back(element)
+            try insertBack(element)
         }
-        self = buffer
-    }
-}
-
-extension Buffer.Linked.Small {
-    // Swift 6.2 CopyPropagation crash: double-consume of Property.Inout.Typed.Valued
-    public init(_ elements: [Element]) {
-        var buffer = Self()
-        for element in elements {
-            buffer.insert.back(element)
-        }
-        self = buffer
     }
 }

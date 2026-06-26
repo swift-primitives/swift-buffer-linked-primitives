@@ -2,374 +2,273 @@ import Buffer_Linked_Primitives
 import Buffer_Linked_Primitives_Test_Support
 import Testing
 
-@Suite("Buffer.Linked")
+// MARK: - Fixtures
+
+/// ~Copyable element with identity + recording deinit (teardown-oracle observation).
+private struct Item: ~Copyable {
+    let id: Int
+    var value: Int
+    init(_ id: Int, value: Int = 0) {
+        self.id = id
+        self.value = value
+    }
+    deinit { Probe.recordDestroy(id) }
+}
+
+/// Serialized destruction recorder (the suite below is `.serialized`).
+private enum Probe {
+    nonisolated(unsafe) static var _destroyed: [Int] = []
+    static func reset() { unsafe _destroyed = [] }
+    static func recordDestroy(_ id: Int) { unsafe _destroyed.append(id) }
+    static var destroyed: [Int] { unsafe _destroyed }
+    static var destroyedSorted: [Int] { unsafe _destroyed.sorted() }
+}
+
+@Suite(.serialized)
 struct LinkedTests {
 
+    // MARK: - Insert / remove (all four combinations, doubly-linked)
+
     @Test
-    func `insert.front and remove.front`() throws {
-        var buffer = try Buffer<Int>.Linked<2>.create(capacity: 8)
-        try buffer.insert.front(10)
-        try buffer.insert.front(20)
-        try buffer.insert.front(30)
-
-        #expect(buffer.count == 3)
-
-        #expect(buffer.remove.front() == 30)
-        #expect(buffer.remove.front() == 20)
-        #expect(buffer.remove.front() == 10)
-        #expect(buffer.isEmpty)
+    func `insertFront and removeFront`() throws {
+        var list: DoublyLinked<Int> = .init(minimumCapacity: 4)
+        try list.insertFront(1)
+        try list.insertFront(2)
+        try list.insertFront(3)  // 3, 2, 1
+        let c = list.count
+        #expect(c == 3)
+        #expect(list.removeFront() == 3)
+        #expect(list.removeFront() == 2)
+        #expect(list.removeFront() == 1)
+        #expect(list.removeFront() as Int? == nil)
+        let empty = list.isEmpty
+        #expect(empty)
     }
 
     @Test
-    func `insert.back and remove.back`() throws {
-        var buffer = try Buffer<Int>.Linked<2>.create(capacity: 8)
-        try buffer.insert.back(10)
-        try buffer.insert.back(20)
-        try buffer.insert.back(30)
-
-        #expect(buffer.count == 3)
-
-        #expect(buffer.remove.back() == 30)
-        #expect(buffer.remove.back() == 20)
-        #expect(buffer.remove.back() == 10)
-        #expect(buffer.isEmpty)
+    func `insertBack and removeBack`() throws {
+        var list: DoublyLinked<Int> = .init(minimumCapacity: 4)
+        try list.insertBack(1)
+        try list.insertBack(2)
+        try list.insertBack(3)  // 1, 2, 3
+        #expect(list.removeBack() == 3)
+        #expect(list.removeBack() == 2)
+        #expect(list.removeBack() == 1)
+        #expect(list.removeBack() as Int? == nil)
     }
 
     @Test
-    func `insert.front and remove.back`() throws {
-        var buffer = try Buffer<Int>.Linked<2>.create(capacity: 8)
-        try buffer.insert.front(10)
-        try buffer.insert.front(20)
-        try buffer.insert.front(30)
-
-        // Front is 30, 20, 10 — removeBack yields 10, 20, 30
-        #expect(buffer.remove.back() == 10)
-        #expect(buffer.remove.back() == 20)
-        #expect(buffer.remove.back() == 30)
-        #expect(buffer.isEmpty)
+    func `insertFront and removeBack`() throws {
+        var list: DoublyLinked<Int> = .init(minimumCapacity: 4)
+        try list.insertFront(1)
+        try list.insertFront(2)
+        try list.insertFront(3)  // 3, 2, 1
+        #expect(list.removeBack() == 1)
+        #expect(list.removeBack() == 2)
+        #expect(list.removeBack() == 3)
     }
 
     @Test
-    func `insert.back and remove.front`() throws {
-        var buffer = try Buffer<Int>.Linked<2>.create(capacity: 8)
-        try buffer.insert.back(10)
-        try buffer.insert.back(20)
-        try buffer.insert.back(30)
-
-        #expect(buffer.remove.front() == 10)
-        #expect(buffer.remove.front() == 20)
-        #expect(buffer.remove.front() == 30)
-        #expect(buffer.isEmpty)
+    func `insertBack and removeFront`() throws {
+        var list: DoublyLinked<Int> = .init(minimumCapacity: 4)
+        try list.insertBack(1)
+        try list.insertBack(2)
+        try list.insertBack(3)  // 1, 2, 3
+        #expect(list.removeFront() == 1)
+        #expect(list.removeFront() == 2)
+        #expect(list.removeFront() == 3)
     }
+
+    // MARK: - Singly-linked (N == 1)
+
+    @Test
+    func `singly-linked removeBack walks`() throws {
+        var list: SinglyLinked<Int> = .init(minimumCapacity: 4)
+        try list.insertBack(1)
+        try list.insertBack(2)
+        try list.insertBack(3)
+        #expect(list.removeBack() == 3)  // O(n) walk
+        #expect(list.removeBack() == 2)
+        #expect(list.removeBack() == 1)
+        #expect(list.removeBack() as Int? == nil)
+        let empty = list.isEmpty
+        #expect(empty)
+    }
+
+    // MARK: - Traversal
 
     @Test
     func `forEach traverses front to back`() throws {
-        var buffer = try Buffer<Int>.Linked<2>.create(capacity: 8)
-        try buffer.insert.back(10)
-        try buffer.insert.back(20)
-        try buffer.insert.back(30)
-
-        var collected: [Int] = []
-        buffer.forEach { collected.append($0) }
-        #expect(collected == [10, 20, 30])
+        let list: DoublyLinked<Int> = try .init([10, 20, 30], minimumCapacity: 4)
+        var visited: [Int] = []
+        list.forEach { (e: borrowing Int) in visited.append(copy e) }
+        #expect(visited == [10, 20, 30])
     }
 
     @Test
     func `forEachReversed traverses back to front`() throws {
-        var buffer = try Buffer<Int>.Linked<2>.create(capacity: 8)
-        try buffer.insert.back(10)
-        try buffer.insert.back(20)
-        try buffer.insert.back(30)
+        let list: DoublyLinked<Int> = try .init([10, 20, 30], minimumCapacity: 4)
+        var visited: [Int] = []
+        list.forEachReversed { (e: borrowing Int) in visited.append(copy e) }
+        #expect(visited == [30, 20, 10])
+    }
 
-        var collected: [Int] = []
-        buffer.forEachReversed { collected.append($0) }
-        #expect(collected == [30, 20, 10])
+    // MARK: - Peek
+
+    @Test
+    func `peekFront and peekBack`() throws {
+        let list: DoublyLinked<Int> = try .init([10, 20, 30], minimumCapacity: 4)
+        let front = list.peekFront { (e: borrowing Int) in copy e }
+        let back = list.peekBack { (e: borrowing Int) in copy e }
+        #expect(front == 10)
+        #expect(back == 30)
+        let c = list.count
+        #expect(c == 3)  // peek does not remove
+    }
+
+    // MARK: - Growth
+
+    @Test
+    func `growth preserves elements and order`() throws {
+        var list: DoublyLinked<Int> = .init(minimumCapacity: 2)
+        try list.insertBack(1)
+        try list.insertBack(2)
+        let full = list.isFull
+        #expect(full)
+        list.ensureCapacity(8)  // relocating growth
+        let cap = list.capacity
+        #expect(cap >= 8)
+        try list.insertBack(3)
+        var visited: [Int] = []
+        list.forEach { (e: borrowing Int) in visited.append(copy e) }
+        #expect(visited == [1, 2, 3])
+        #expect(list.removeBack() == 3)
+        #expect(list.removeFront() == 1)
     }
 
     @Test
-    func `growth preserves elements`() throws {
-        var buffer = try Buffer<Int>.Linked<2>.create(capacity: 2)
-        try buffer.insert.back(10)
-        try buffer.insert.back(20)
-        #expect(buffer.isFull == true)
-
-        // Grow — should preserve existing elements
-        try buffer.ensureCapacity(8)
-        #expect(buffer.count == 2)
-
-        // Elements survive growth in order
-        var collected: [Int] = []
-        buffer.forEach { collected.append($0) }
-        #expect(collected == [10, 20])
-
-        // Can insert after growth
-        try buffer.insert.back(30)
-        #expect(buffer.count == 3)
+    func `reserveAdditionalCapacity grows relative to count`() throws {
+        var list: DoublyLinked<Int> = .init(minimumCapacity: 2)
+        try list.insertBack(1)
+        list.reserveAdditionalCapacity(7)
+        let cap = list.capacity
+        #expect(cap >= 8)
+        let c = list.count
+        #expect(c == 1)
     }
 
-    @Test
-    func `ensureUnique on copy`() throws {
-        var original = try Buffer<Int>.Linked<2>.create(capacity: 8)
-        try original.insert.back(10)
-        try original.insert.back(20)
-        try original.insert.back(30)
-
-        var copy = original
-
-        // Mutating copy triggers CoW
-        let didCopy = copy.ensureUnique()
-        #expect(didCopy == true)
-
-        // Second call on unique reference should not copy
-        let didCopyAgain = copy.ensureUnique()
-        #expect(didCopyAgain == false)
-    }
+    // MARK: - Capacity limit
 
     @Test
-    func `copy independence after CoW`() throws {
-        var original = try Buffer<Int>.Linked<2>.create(capacity: 8)
-        try original.insert.back(10)
-        try original.insert.back(20)
-
-        var copy = original
-        copy.ensureUnique()
-        try copy.insert.back(99)
-
-        // Original unaffected
-        #expect(original.count == 2)
-        #expect(copy.count == 3)
-    }
-
-    @Test
-    func `empty list operations`() throws {
-        var buffer = try Buffer<Int>.Linked<2>.create(capacity: 4)
-        #expect(buffer.isEmpty == true)
-        #expect(buffer.count == .zero)
-        #expect(buffer.remove.front() == nil)
-        #expect(buffer.remove.back() == nil)
-    }
-
-    @Test
-    func `first and last accessors`() throws {
-        var buffer = try Buffer<Int>.Linked<2>.create(capacity: 8)
-        #expect(buffer.first == nil)
-        #expect(buffer.last == nil)
-
-        try buffer.insert.back(10)
-        try buffer.insert.back(20)
-        try buffer.insert.back(30)
-
-        #expect(buffer.first == 10)
-        #expect(buffer.last == 30)
-
-        // Accessors do not remove
-        #expect(buffer.count == 3)
-    }
-
-    @Test
-    func `Equatable — equal lists`() throws {
-        var a = try Buffer<Int>.Linked<2>.create(capacity: 8)
-        try a.insert.back(10)
-        try a.insert.back(20)
-        try a.insert.back(30)
-
-        var b = try Buffer<Int>.Linked<2>.create(capacity: 8)
-        try b.insert.back(10)
-        try b.insert.back(20)
-        try b.insert.back(30)
-
-        #expect(a == b)
-    }
-
-    @Test
-    func `Equatable — unequal lists`() throws {
-        var a = try Buffer<Int>.Linked<2>.create(capacity: 8)
-        try a.insert.back(10)
-        try a.insert.back(20)
-
-        var b = try Buffer<Int>.Linked<2>.create(capacity: 8)
-        try b.insert.back(10)
-        try b.insert.back(99)
-
-        #expect(a != b)
-    }
-
-    @Test
-    func `Equatable — different counts`() throws {
-        var a = try Buffer<Int>.Linked<2>.create(capacity: 8)
-        try a.insert.back(10)
-
-        var b = try Buffer<Int>.Linked<2>.create(capacity: 8)
-        try b.insert.back(10)
-        try b.insert.back(20)
-
-        #expect(a != b)
-    }
-
-    @Test
-    func `Hashable — equal lists produce same hash`() throws {
-        var a = try Buffer<Int>.Linked<2>.create(capacity: 8)
-        try a.insert.back(10)
-        try a.insert.back(20)
-
-        var b = try Buffer<Int>.Linked<2>.create(capacity: 8)
-        try b.insert.back(10)
-        try b.insert.back(20)
-
-        #expect(a.hashValue == b.hashValue)
-    }
-
-    @Test
-    func `drain removes all elements in order`() throws {
-        var buffer = try Buffer<Int>.Linked<2>.create(capacity: 8)
-        try buffer.insert.back(10)
-        try buffer.insert.back(20)
-        try buffer.insert.back(30)
-
-        var drained: [Int] = []
-        buffer.drain { drained.append($0) }
-        #expect(drained == [10, 20, 30])
-        #expect(buffer.isEmpty)
-    }
-
-    @Test
-    func `count tracking through insert and remove`() throws {
-        var buffer = try Buffer<Int>.Linked<2>.create(capacity: 8)
-        #expect(buffer.count == .zero)
-
-        try buffer.insert.back(10)
-        #expect(buffer.count == 1)
-
-        try buffer.insert.front(20)
-        #expect(buffer.count == 2)
-
-        _ = buffer.remove.front()
-        #expect(buffer.count == 1)
-
-        _ = buffer.remove.back()
-        #expect(buffer.count == .zero)
-    }
-
-    @Test
-    func `minimumCapacity init`() {
-        let buffer = Buffer<Int>.Linked<2>(
-            minimumCapacity: Index<Buffer<Int>.Linked<2>.Node>.Count(UInt(8))
-        )
-        #expect(buffer.isEmpty == true)
-        #expect(buffer.capacity.underlying.rawValue >= 8)
-    }
-
-    @Test
-    func `removeAll clears list`() throws {
-        var buffer = try Buffer<Int>.Linked<2>.create(capacity: 8)
-        try buffer.insert.back(10)
-        try buffer.insert.back(20)
-        try buffer.insert.back(30)
-
-        buffer.removeAll()
-
-        #expect(buffer.isEmpty == true)
-        #expect(buffer.count == .zero)
-    }
-
-    @Test
-    func `Sequence iteration`() throws {
-        var buffer = try Buffer<Int>.Linked<2>.create(capacity: 8)
-        try buffer.insert.back(10)
-        try buffer.insert.back(20)
-        try buffer.insert.back(30)
-
-        var collected: [Int] = []
-        var iter = buffer.makeIterator()
-        while let value = iter.next() {
-            collected.append(value)
+    func `insert past capacity throws capacityExceeded`() throws {
+        var list: DoublyLinked<Int> = .init(minimumCapacity: 2)
+        try list.insertBack(1)
+        try list.insertBack(2)
+        var didThrow = false
+        do {
+            try list.insertBack(3)
+        } catch {
+            didThrow = error == .capacityExceeded
         }
-        #expect(collected == [10, 20, 30])
+        #expect(didThrow)
+        let c = list.count
+        #expect(c == 2)
+    }
+
+    // MARK: - Remove all
+
+    @Test
+    func `removeAll clears list and the store is reusable`() throws {
+        var list: DoublyLinked<Int> = try .init([1, 2, 3], minimumCapacity: 4)
+        list.removeAll()
+        let c = list.count
+        let empty = list.isEmpty
+        #expect(c == 0)
+        #expect(empty)
+        try list.insertBack(9)  // slots recycle
+        #expect(list.removeFront() == 9)
+    }
+
+    // MARK: - Count tracking
+
+    @Test
+    func `count tracks inserts and removes`() throws {
+        var list: DoublyLinked<Int> = .init(minimumCapacity: 4)
+        let c0 = list.count
+        #expect(c0 == 0)
+        try list.insertFront(1)
+        try list.insertBack(2)
+        let c2 = list.count
+        #expect(c2 == 2)
+        _ = list.removeFront() as Int?
+        let c1 = list.count
+        #expect(c1 == 1)
+        _ = list.removeBack() as Int?
+        let cEnd = list.count
+        let empty = list.isEmpty
+        #expect(cEnd == 0)
+        #expect(empty)
+    }
+
+    // MARK: - Teardown (the generational store destroys exactly the live nodes)
+
+    @Test
+    func `teardown destroys every live element exactly once`() throws {
+        Probe.reset()
+        do {
+            var list: DoublyLinked<Item> = .init(minimumCapacity: 4)
+            try list.insertBack(Item(1, value: 10))
+            try list.insertBack(Item(2, value: 20))
+            try list.insertFront(Item(3, value: 30))
+            let mid = Probe.destroyed
+            #expect(mid.isEmpty)  // moves, not copies
+        }  // buffer dies → the generational oracle fires
+        let ds = Probe.destroyedSorted
+        #expect(ds == [1, 2, 3])
     }
 
     @Test
-    func `single element`() throws {
-        var buffer = try Buffer<Int>.Linked<2>.create(capacity: 4)
-        try buffer.insert.back(42)
-        #expect(buffer.count == 1)
-        #expect(buffer.first == 42)
-        #expect(buffer.last == 42)
-        #expect(buffer.remove.front() == 42)
-        #expect(buffer.isEmpty)
+    func `removed element is destroyed by the caller, not the oracle`() throws {
+        Probe.reset()
+        do {
+            var list: DoublyLinked<Item> = .init(minimumCapacity: 4)
+            try list.insertBack(Item(7, value: 70))
+            try list.insertBack(Item(8, value: 80))
+            guard let taken = list.removeFront() as Item? else {
+                Issue.record("expected an element")
+                return
+            }
+            let tid = taken.id
+            #expect(tid == 7)
+            let dMid = Probe.destroyed
+            #expect(dMid.isEmpty)  // still alive in `taken`
+            _ = consume taken
+            let dTaken = Probe.destroyedSorted
+            #expect(dTaken == [7])
+        }
+        let ds = Probe.destroyedSorted
+        #expect(ds == [7, 8])  // the remaining node via the oracle
     }
 
-    @Test
-    func `auto grows when full (Copyable)`() throws {
-        var buffer = try Buffer<Int>.Linked<2>.create(capacity: 2)
-        try buffer.insert.back(10)
-        try buffer.insert.back(20)
-        #expect(buffer.isFull == true)
-
-        // Copyable variant auto-grows via ensureUnique + _grow
-        buffer.insert.back(30)
-        #expect(buffer.count == 3)
-        #expect(buffer.last == 30)
-    }
-}
-
-@Suite("Buffer.Linked singly-linked (N=1)")
-struct LinkedSinglyTests {
+    // MARK: - Move-only element surface (singly)
 
     @Test
-    func `insert.front and remove.front`() throws {
-        var buffer = try Buffer<Int>.Linked<1>.create(capacity: 8)
-        try buffer.insert.front(10)
-        try buffer.insert.front(20)
-        try buffer.insert.front(30)
-
-        #expect(buffer.remove.front() == 30)
-        #expect(buffer.remove.front() == 20)
-        #expect(buffer.remove.front() == 10)
-        #expect(buffer.isEmpty)
-    }
-
-    @Test
-    func `insert.back and remove.back — O(n) traversal`() throws {
-        var buffer = try Buffer<Int>.Linked<1>.create(capacity: 8)
-        try buffer.insert.back(10)
-        try buffer.insert.back(20)
-        try buffer.insert.back(30)
-
-        // removeBack on singly-linked traverses to find predecessor
-        #expect(buffer.remove.back() == 30)
-        #expect(buffer.remove.back() == 20)
-        #expect(buffer.remove.back() == 10)
-        #expect(buffer.isEmpty)
-    }
-
-    @Test
-    func `forEach traverses front to back`() throws {
-        var buffer = try Buffer<Int>.Linked<1>.create(capacity: 8)
-        try buffer.insert.back(10)
-        try buffer.insert.back(20)
-        try buffer.insert.back(30)
-
-        var collected: [Int] = []
-        buffer.forEach { collected.append($0) }
-        #expect(collected == [10, 20, 30])
-    }
-
-    @Test
-    func `first and last accessors`() throws {
-        var buffer = try Buffer<Int>.Linked<1>.create(capacity: 8)
-        try buffer.insert.back(10)
-        try buffer.insert.back(20)
-
-        #expect(buffer.first == 10)
-        #expect(buffer.last == 20)
-    }
-
-    @Test
-    func `single element removeBack`() throws {
-        var buffer = try Buffer<Int>.Linked<1>.create(capacity: 4)
-        try buffer.insert.back(42)
-
-        #expect(buffer.remove.back() == 42)
-        #expect(buffer.isEmpty)
+    func `move-only elements flow through insert, peek, remove`() throws {
+        Probe.reset()
+        do {
+            var list: SinglyLinked<Item> = .init(minimumCapacity: 2)
+            try list.insertFront(Item(4, value: 40))
+            let v = list.peekFront { (e: borrowing Item) in e.value }
+            #expect(v == 40)
+            guard let taken = list.removeFront() as Item? else {
+                Issue.record("expected an element")
+                return
+            }
+            let tv = taken.value
+            #expect(tv == 40)
+            _ = consume taken
+        }
+        let ds = Probe.destroyedSorted
+        #expect(ds == [4])
     }
 }
