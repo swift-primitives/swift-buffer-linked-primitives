@@ -95,6 +95,38 @@ struct LinkedSharedTests {
         #expect(a.capacity == 2)
     }
 
+    // MARK: - Iteration + first / last
+
+    @Test
+    func `makeIterator walks head to tail`() throws {
+        let list: DoublyLinkedShared<Int> = try .init([1, 2, 3, 4], minimumCapacity: 8)
+        var walked: [Int] = []
+        var it = list.makeIterator()
+        while let e = it.next() { walked.append(e) }
+        #expect(walked == [1, 2, 3, 4])
+    }
+
+    @Test
+    func `iterator is a snapshot — mutating the source does not disturb it`() throws {
+        var a: DoublyLinkedShared<Int> = try .init([1, 2, 3], minimumCapacity: 8)
+        var it = a.makeIterator()          // snapshots a's box
+        try a.insertBack(4)                // CoW detaches a; the iterator keeps the old box
+        var walked: [Int] = []
+        while let e = it.next() { walked.append(e) }
+        #expect(walked == [1, 2, 3])
+        #expect(a.count == 4)
+    }
+
+    @Test
+    func `first and last lift the boundary elements`() throws {
+        let list: DoublyLinkedShared<Int> = try .init([10, 20, 30], minimumCapacity: 8)
+        #expect(list.first() == 10)
+        #expect(list.last() == 30)
+        let empty: DoublyLinkedShared<Int> = .init(minimumCapacity: 4)
+        #expect(empty.first() == Int?.none)
+        #expect(empty.last() == Int?.none)
+    }
+
     // MARK: - Singly-linked Shared column
 
     @Test
