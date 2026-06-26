@@ -80,9 +80,7 @@ extension Buffer.Linked where S: ~Copyable {
     ///
     /// The element is statically `Copyable` HERE: the construction site is where the column's
     /// clone strategy is captured (`Shared`'s constructors split on element copyability).
-    ///
-    /// NOT `@inlinable`: cross-package specialization of the `Shared`-box construction miscompiles
-    /// on Apple Swift 6.3.2 (SIGSEGV downstream). See the `~Copyable`-element overload below.
+    @inlinable
     public init<E>(minimumCapacity: Index<E>.Count)
     where S == Shared<Node<E, N>, Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<Node<E, N>>> {
         precondition(minimumCapacity > .zero, "capacity must be positive")
@@ -95,11 +93,7 @@ extension Buffer.Linked where S: ~Copyable {
 
     /// Creates an empty statically-unique linked list of move-only elements on the `Shared`
     /// column (the boxed flavor of the move-only regime — useful when the box's O(1) move matters).
-    ///
-    /// NOT `@inlinable`: cross-package specialization of the `Shared`-box construction (box +
-    /// captured drain/clone closures) miscompiles on Apple Swift 6.3.2 (SIGSEGV in a downstream
-    /// consumer such as swift-list-linked-primitives). Keeping the body opaque specializes it
-    /// inside this module, where it is sound. Construction is off the hot path.
+    @inlinable
     public init<E: ~Copyable>(minimumCapacity: Index<E>.Count)
     where S == Shared<Node<E, N>, Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<Node<E, N>>> {
         precondition(minimumCapacity > .zero, "capacity must be positive")
