@@ -15,7 +15,7 @@ import Testing
 
 // MARK: - The Shared (CoW value-semantic) column
 //
-// `Buffer<Shared<Node, …Generational>>.Linked` is `Copyable` when the element is, and copies share
+// `Buffer<Ownership.Shared<Node, …Generational>>.Linked` is `Copyable` when the element is, and copies share
 // the backing box until the first mutation restores uniqueness (a generation-preserving clone, so
 // the buffer's head/tail/link handles keep resolving across the detach). These tests pin the value
 // semantics the move-only column deliberately does not provide.

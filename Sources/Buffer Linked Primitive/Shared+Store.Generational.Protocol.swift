@@ -9,7 +9,7 @@
 //
 // ===----------------------------------------------------------------------===//
 
-public import Shared_Primitive
+public import Ownership_Shared_Primitive
 public import Storage_Generational_Primitives
 public import Store_Primitive
 public import Memory_Heap_Primitives
@@ -23,5 +23,5 @@ public import Memory_Allocator_Pool_Primitives
 // before writing; `unshare()` is `Shared`'s own CoW gate. The conformance is pinned to
 // the heap-pool generational column — the only column that owns the handle surface.
 
-extension Shared: Store.Generational.`Protocol`
+extension Ownership.Shared: Store.Generational.`Protocol`
 where Element: ~Copyable, B == Storage<Memory.Allocator<Memory.Heap>.Pool>.Generational<Element> {}

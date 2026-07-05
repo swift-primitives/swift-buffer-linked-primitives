@@ -97,7 +97,7 @@ extension Buffer.Linked where S: ~Copyable {
 
 // MARK: - Conditional Conformances (Linked)
 
-/// Copyability flows from the COLUMN (the S5 chain): `Buffer<Shared<Node, …>>.Linked` is
+/// Copyability flows from the COLUMN (the S5 chain): `Buffer<Ownership.Shared<Node, …>>.Linked` is
 /// `Copyable` exactly when the `Shared` box is — i.e. when the element is `Copyable` (the box is a
 /// class reference, copies share until the first mutation restores uniqueness). The direct
 /// move-only generational column never satisfies this, by design — it stays the zero-cost
