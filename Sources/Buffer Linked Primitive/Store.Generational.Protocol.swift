@@ -31,7 +31,7 @@ public import Storage_Generational_Primitives
 ///
 /// ## The mutation gate
 ///
-/// `prepareForMutation()` is the copy-on-write gate, defaulted to a no-op: the bare store is
+/// `unshare()` is the copy-on-write gate, defaulted to a no-op: the bare store is
 /// statically unique and inherits it; the `Shared` column overrides it (restoring uniqueness).
 /// Generic mutating ops call it before their first write, so the same body is CoW-correct on the
 /// `Shared` column and free on the move-only column. The seam's own mutators ALSO self-gate
@@ -42,7 +42,7 @@ public protocol __StoreGenerationalProtocol: ~Copyable {
 
     /// The copy-on-write gate (defaulted no-op; `Shared` overrides). Generic code calls this
     /// before its first write in any semantic mutation.
-    mutating func prepareForMutation()
+    mutating func unshare()
 
     /// Inserts an element; returns a fresh handle to its slot.
     mutating func insert(_ element: consuming Element) -> Store.Generational.Handle
@@ -63,7 +63,7 @@ public protocol __StoreGenerationalProtocol: ~Copyable {
 extension __StoreGenerationalProtocol where Self: ~Copyable {
     /// Plain stores have no shared backing to restore; the gate is a no-op.
     @inlinable
-    public mutating func prepareForMutation() {}
+    public mutating func unshare() {}
 }
 
 // MARK: - Namespace Typealias

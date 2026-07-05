@@ -16,7 +16,7 @@ public import Storage_Generational_Primitives
 //
 // Every witness already exists on `Storage.Generational` (the slot-map's identity surface):
 // `insert(_:) -> Handle`, `remove(_:) -> Element?`, the validated `subscript(_ handle:)`.
-// `prepareForMutation()` is the seam's no-op default — the bare store is statically unique.
+// `unshare()` is the seam's no-op default — the bare store is statically unique.
 
 extension Storage.Generational: Store.Generational.`Protocol`
 where Allocation: ~Copyable, Element: ~Copyable {}

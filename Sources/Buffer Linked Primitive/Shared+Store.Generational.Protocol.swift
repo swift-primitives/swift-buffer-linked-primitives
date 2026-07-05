@@ -20,7 +20,7 @@ public import Memory_Allocator_Pool_Primitives
 //
 // Witnesses are the self-gating forwarders on `Shared` (swift-shared-primitives'
 // `Shared+Generational.swift`): `insert` / `remove` / `subscript(_ handle:)` restore uniqueness
-// before writing; `prepareForMutation()` is `Shared`'s own CoW gate. The conformance is pinned to
+// before writing; `unshare()` is `Shared`'s own CoW gate. The conformance is pinned to
 // the heap-pool generational column — the only column that owns the handle surface.
 
 extension Shared: Store.Generational.`Protocol`

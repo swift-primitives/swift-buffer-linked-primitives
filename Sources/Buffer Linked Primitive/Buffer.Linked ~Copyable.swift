@@ -23,7 +23,7 @@ public import Storage_Generational_Primitives
 // `links[1]` = prev (`N >= 2`). The validated handle subscript guards every link write (occupancy
 // plus generation); the store's deinitializer owns all teardown.
 //
-// Semantic mutations call `storage.prepareForMutation()` before their first write, so the same
+// Semantic mutations call `storage.unshare()` before their first write, so the same
 // generic body is copy-on-write-correct on the `Shared` column and free on the move-only column.
 // CONSTRUCTION and GROWTH pin per column (they need a concrete allocator) — see
 // `Buffer.Linked+Columns.swift`.
@@ -38,7 +38,7 @@ extension Buffer.Linked where S: Store.Generational.`Protocol`, S: ~Copyable {
     public mutating func insertFront<E: ~Copyable>(_ element: consuming E) throws(Self.Error)
     where S.Element == Node<E, N> {
         guard _count < _capacity else { throw .capacityExceeded }
-        storage.prepareForMutation()
+        storage.unshare()
         var links = InlineArray<N, Store.Generational.Handle?>(repeating: nil)
         links[0] = head
         let handle = storage.insert(Node(element: element, links: links))
@@ -57,7 +57,7 @@ extension Buffer.Linked where S: Store.Generational.`Protocol`, S: ~Copyable {
     public mutating func insertBack<E: ~Copyable>(_ element: consuming E) throws(Self.Error)
     where S.Element == Node<E, N> {
         guard _count < _capacity else { throw .capacityExceeded }
-        storage.prepareForMutation()
+        storage.unshare()
         var links = InlineArray<N, Store.Generational.Handle?>(repeating: nil)
         if N >= 2 { links[1] = tail }
         let handle = storage.insert(Node(element: element, links: links))
@@ -76,7 +76,7 @@ extension Buffer.Linked where S: Store.Generational.`Protocol`, S: ~Copyable {
     public mutating func removeFront<E: ~Copyable>() -> E?
     where S.Element == Node<E, N> {
         guard let handle = head else { return nil }
-        storage.prepareForMutation()
+        storage.unshare()
         let next = storage[handle].links[0]
         guard let node = storage.remove(handle) else { return nil }
         head = next
@@ -95,7 +95,7 @@ extension Buffer.Linked where S: Store.Generational.`Protocol`, S: ~Copyable {
     public mutating func removeBack<E: ~Copyable>() -> E?
     where S.Element == Node<E, N> {
         guard let handle = tail else { return nil }
-        storage.prepareForMutation()
+        storage.unshare()
         let previous: Store.Generational.Handle?
         if N >= 2 {
             previous = storage[handle].links[1]
