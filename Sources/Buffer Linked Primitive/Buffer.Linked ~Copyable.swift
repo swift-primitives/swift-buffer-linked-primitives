@@ -10,8 +10,8 @@
 // ===----------------------------------------------------------------------===//
 
 public import Buffer_Primitive
-public import Store_Primitive
 public import Storage_Generational_Primitives
+public import Store_Primitive
 
 // MARK: - The COLUMN-GENERIC surface (rides the `Store.Generational.`Protocol`` handle seam)
 //

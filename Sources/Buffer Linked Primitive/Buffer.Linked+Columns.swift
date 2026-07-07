@@ -13,8 +13,8 @@ public import Buffer_Primitive
 public import Memory_Allocator_Pool_Primitives
 public import Memory_Allocator_Primitive
 public import Memory_Heap_Primitives
-public import Storage_Generational_Primitives
 public import Ownership_Shared_Primitive
+public import Storage_Generational_Primitives
 
 // MARK: - The COLUMN-PINNED surface: construction and growth
 //

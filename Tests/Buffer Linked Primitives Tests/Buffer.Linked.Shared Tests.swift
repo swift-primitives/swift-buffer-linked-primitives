@@ -49,8 +49,8 @@ struct LinkedSharedTests {
     @Test
     func `copy then mutate leaves the original untouched`() throws {
         var a: DoublyLinkedShared<Int> = try .init([1, 2, 3], minimumCapacity: 8)
-        var b = a              // shares the box
-        try b.insertBack(4)    // first mutation → CoW detach
+        var b = a  // shares the box
+        try b.insertBack(4)  // first mutation → CoW detach
         #expect(collect(a) == [1, 2, 3])
         #expect(collect(b) == [1, 2, 3, 4])
         #expect(a.count == 3)
@@ -61,8 +61,8 @@ struct LinkedSharedTests {
     func `both copies are independently mutable after a detach`() throws {
         var a: DoublyLinkedShared<Int> = try .init([1, 2, 3], minimumCapacity: 8)
         var b = a
-        try b.insertBack(4)        // b detaches
-        #expect(a.removeFront() == 1)   // a is now unique → free mutation
+        try b.insertBack(4)  // b detaches
+        #expect(a.removeFront() == 1)  // a is now unique → free mutation
         try a.insertBack(9)
         #expect(collect(a) == [2, 3, 9])
         #expect(collect(b) == [1, 2, 3, 4])
@@ -72,7 +72,7 @@ struct LinkedSharedTests {
     func `removeFront on a shared copy does not disturb the sibling`() throws {
         var a: DoublyLinkedShared<Int> = try .init([10, 20, 30], minimumCapacity: 8)
         var b = a
-        _ = b.removeFront()        // mutation → detach
+        _ = b.removeFront()  // mutation → detach
         _ = b.removeFront()
         #expect(collect(a) == [10, 20, 30])
         #expect(collect(b) == [30])
@@ -86,8 +86,8 @@ struct LinkedSharedTests {
         try a.insertBack(1)
         try a.insertBack(2)
         #expect(a.isFull)
-        var b = a                  // shares the box
-        b.ensureCapacity(8)        // mutation → detach + grow b only
+        var b = a  // shares the box
+        b.ensureCapacity(8)  // mutation → detach + grow b only
         try b.insertBack(3)
         #expect(collect(a) == [1, 2])
         #expect(collect(b) == [1, 2, 3])
@@ -109,8 +109,8 @@ struct LinkedSharedTests {
     @Test
     func `iterator is a snapshot — mutating the source does not disturb it`() throws {
         var a: DoublyLinkedShared<Int> = try .init([1, 2, 3], minimumCapacity: 8)
-        var it = a.makeIterator()          // snapshots a's box
-        try a.insertBack(4)                // CoW detaches a; the iterator keeps the old box
+        var it = a.makeIterator()  // snapshots a's box
+        try a.insertBack(4)  // CoW detaches a; the iterator keeps the old box
         var walked: [Int] = []
         while let e = it.next() { walked.append(e) }
         #expect(walked == [1, 2, 3])
@@ -133,7 +133,7 @@ struct LinkedSharedTests {
     func `singly-linked Shared column round-trips`() throws {
         var list: SinglyLinkedShared<Int> = try .init([5, 6, 7], minimumCapacity: 4)
         #expect(list.removeFront() == 5)
-        #expect(list.removeBack() == 7)   // O(n) walk
+        #expect(list.removeBack() == 7)  // O(n) walk
         #expect(list.removeFront() == 6)
         #expect(list.isEmpty)
     }
