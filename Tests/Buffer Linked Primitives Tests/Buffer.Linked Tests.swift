@@ -16,7 +16,9 @@ private struct Item: ~Copyable {
 }
 
 /// Serialized destruction recorder (the suite below is `.serialized`).
-private enum Probe {
+private enum Probe {}
+
+extension Probe {
     nonisolated(unsafe) static var _destroyed: [Int] = []
     static func reset() { unsafe _destroyed = [] }
     static func recordDestroy(_ id: Int) { unsafe _destroyed.append(id) }
@@ -165,7 +167,7 @@ struct LinkedTests {
         try list.insertBack(1)
         try list.insertBack(2)
         var didThrow = false
-        do {
+        do throws(DoublyLinked<Int>.Error) {
             try list.insertBack(3)
         } catch {
             didThrow = error == .capacityExceeded
