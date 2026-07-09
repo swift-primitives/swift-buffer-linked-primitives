@@ -27,7 +27,7 @@ extension Probe {
 }
 
 @Suite(.serialized)
-struct LinkedTests {
+struct `Buffer.Linked Tests` {
 
     // MARK: - Insert / remove (all four combinations, doubly-linked)
 

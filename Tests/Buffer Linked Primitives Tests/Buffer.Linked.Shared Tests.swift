@@ -21,7 +21,7 @@ import Testing
 // semantics the move-only column deliberately does not provide.
 
 @Suite
-struct LinkedSharedTests {
+struct `Buffer.Linked.Shared Tests` {
 
     private func collect(_ list: borrowing DoublyLinkedShared<Int>) -> [Int] {
         var out: [Int] = []
