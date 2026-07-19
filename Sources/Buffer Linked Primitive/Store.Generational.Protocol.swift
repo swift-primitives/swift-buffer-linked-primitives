@@ -40,8 +40,9 @@ public protocol __StoreGenerationalProtocol: ~Copyable {
     /// The element stored in each slot — the linked node.
     associatedtype Element: ~Copyable
 
-    /// The copy-on-write gate (defaulted no-op; `Shared` overrides). Generic code calls this
-    /// before its first write in any semantic mutation.
+    /// The copy-on-write gate (defaulted no-op; `Shared` overrides).
+    ///
+    /// Generic code calls this before its first write in any semantic mutation.
     mutating func unshare()
 
     /// Inserts an element; returns a fresh handle to its slot.
