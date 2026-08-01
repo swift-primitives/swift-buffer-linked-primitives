@@ -115,4 +115,4 @@ extension Buffer.Linked: Copyable where S: Copyable {}
 /// ## Non-Goals
 ///
 /// - Not a shared concurrent linked buffer.
-extension Buffer.Linked: @unsafe @unchecked Sendable where S: Sendable {}
+extension Buffer.Linked: @unchecked Sendable where S: Sendable {}

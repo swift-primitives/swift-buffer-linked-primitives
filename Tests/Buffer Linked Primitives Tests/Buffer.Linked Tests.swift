@@ -19,15 +19,24 @@ private struct Item: ~Copyable {
 private enum Probe {}
 
 extension Probe {
+    // SAFETY: only ever touched from this file's tests, and the enclosing suite is
+    // declared `.serialized`, so no two tests can race on `_destroyed`.
     nonisolated(unsafe) static var _destroyed: [Int] = []
     static func reset() { unsafe _destroyed = [] }
+    // swift-linter:disable:next compound identifier
+    // REASON: member of a private enum (Probe); no consumer-observable surface per the private-type carve-out.
     static func recordDestroy(_ id: Int) { unsafe _destroyed.append(id) }
     static var destroyed: [Int] { unsafe _destroyed }
+    // swift-linter:disable:next compound identifier
+    // REASON: member of a private enum (Probe); no consumer-observable surface per the private-type carve-out.
     static var destroyedSorted: [Int] { unsafe _destroyed.sorted() }
 }
 
 @Suite(.serialized)
 struct `Buffer.Linked Tests` {
+    @Suite struct Unit {}
+    @Suite struct `Edge Case` {}
+    @Suite struct Integration {}
 
     // MARK: - Insert / remove (all four combinations, doubly-linked)
 

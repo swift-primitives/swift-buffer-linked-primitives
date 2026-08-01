@@ -22,6 +22,9 @@ import Testing
 
 @Suite
 struct `Buffer.Linked.Shared Tests` {
+    @Suite struct Unit {}
+    @Suite struct `Edge Case` {}
+    @Suite struct Integration {}
 
     private func collect(_ list: borrowing DoublyLinkedShared<Int>) -> [Int] {
         var out: [Int] = []
