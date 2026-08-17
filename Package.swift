@@ -5,11 +5,11 @@ import PackageDescription
 let package = Package(
     name: "swift-buffer-linked-primitives",
     platforms: [
-        .macOS(.v26),
-        .iOS(.v26),
-        .tvOS(.v26),
-        .watchOS(.v26),
-        .visionOS(.v26),
+        .macOS("27"),
+        .iOS("27"),
+        .tvOS("27"),
+        .watchOS("27"),
+        .visionOS("27"),
     ],
     products: [
         // MARK: - Type module (the lean ~Copyable Buffer.Linked type over its storage substrate)
