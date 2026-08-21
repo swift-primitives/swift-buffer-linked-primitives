@@ -12,9 +12,9 @@ let package = Package(
         .visionOS(.v27),
     ],
     products: [
-        // MARK: - Type module (the lean ~Copyable Buffer.Linked type over its storage substrate)
+
         .library(name: "Buffer Linked Primitive", targets: ["Buffer Linked Primitive"]),
-        // MARK: - [MOD-005] umbrella (re-exports the type module and the Buffer/Storage/Memory vocabulary)
+
         .library(name: "Buffer Linked Primitives", targets: ["Buffer Linked Primitives"]),
         .library(
             name: "Buffer Linked Primitives Test Support",
@@ -49,7 +49,6 @@ let package = Package(
     ],
     targets: [
 
-        // MARK: - Type module — the un-phantomed Buffer<S>.Linked<N> over generational node storage
         .target(
             name: "Buffer Linked Primitive",
             dependencies: [
@@ -75,7 +74,6 @@ let package = Package(
             ]
         ),
 
-        // MARK: - Umbrella
         .target(
             name: "Buffer Linked Primitives",
             dependencies: [
@@ -83,7 +81,6 @@ let package = Package(
             ]
         ),
 
-        // MARK: - Test Support
         .target(
             name: "Buffer Linked Primitives Test Support",
             dependencies: [
@@ -92,7 +89,6 @@ let package = Package(
             path: "Tests/Support"
         ),
 
-        // MARK: - Tests
         .testTarget(
             name: "Buffer Linked Primitives Tests",
             dependencies: ["Buffer Linked Primitives", "Buffer Linked Primitives Test Support"]

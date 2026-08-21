@@ -1,39 +1,9 @@
-// ===----------------------------------------------------------------------===//
-//
-// This source file is part of the swift-primitives open source project
-//
-// Copyright (c) 2024-2026 Coen ten Thije Boonkkamp and the swift-primitives project authors
-// Licensed under Apache License v2.0
-//
-// See LICENSE for license information
-//
-// ===----------------------------------------------------------------------===//
-
 public import Buffer_Primitive
 public import Storage_Generational_Primitives
 public import Store_Primitive
 
-// MARK: - The COLUMN-GENERIC surface (rides the `Store.Generational.`Protocol`` handle seam)
-//
-// Every node operation is written ONCE over the seam both ratified columns conform to — the bare
-// move-only generational store and the `Shared` CoW box over it. Each method carries the user
-// element `E` as a free parameter and pins `S.Element == Node<E, N>` (an extension cannot
-// introduce a free element parameter; a bare `S` cannot project the node's payload). Link
-// maintenance runs over generational handles (`nil` marks the end of the list): `links[0]` = next,
-// `links[1]` = prev (`N >= 2`). The validated handle subscript guards every link write (occupancy
-// plus generation); the store's deinitializer owns all teardown.
-//
-// Semantic mutations call `storage.unshare()` before their first write, so the same
-// generic body is copy-on-write-correct on the `Shared` column and free on the move-only column.
-// CONSTRUCTION and GROWTH pin per column (they need a concrete allocator) — see
-// `Buffer.Linked+Columns.swift`.
-
-// MARK: - Direct double-ended operations
-
 extension Buffer.Linked where S: Store.Generational.`Protocol`, S: ~Copyable {
-    /// Links a freshly inserted head node.
-    ///
-    /// - Complexity: O(1)
+
     @inlinable
     public mutating func insertFront<E: ~Copyable>(_ element: consuming E) throws(Self.Error)
     where S.Element == Node<E, N> {
@@ -50,9 +20,6 @@ extension Buffer.Linked where S: Store.Generational.`Protocol`, S: ~Copyable {
         _count &+= 1
     }
 
-    /// Links a freshly inserted tail node.
-    ///
-    /// - Complexity: O(1)
     @inlinable
     public mutating func insertBack<E: ~Copyable>(_ element: consuming E) throws(Self.Error)
     where S.Element == Node<E, N> {
@@ -69,9 +36,6 @@ extension Buffer.Linked where S: Store.Generational.`Protocol`, S: ~Copyable {
         _count &+= 1
     }
 
-    /// Unlinks and returns the head element.
-    ///
-    /// - Complexity: O(1)
     @inlinable
     public mutating func removeFront<E: ~Copyable>() -> E?
     where S.Element == Node<E, N> {
@@ -88,9 +52,6 @@ extension Buffer.Linked where S: Store.Generational.`Protocol`, S: ~Copyable {
         return node.element
     }
 
-    /// Unlinks and returns the tail element.
-    ///
-    /// - Complexity: O(1) for `N >= 2`; O(n) for `N == 1`
     @inlinable
     public mutating func removeBack<E: ~Copyable>() -> E?
     where S.Element == Node<E, N> {
@@ -100,7 +61,7 @@ extension Buffer.Linked where S: Store.Generational.`Protocol`, S: ~Copyable {
         if N >= 2 {
             previous = storage[handle].links[1]
         } else {
-            // Singly-linked: walk to the node whose next is the tail.
+
             var walk = head
             var found: Store.Generational.Handle? = nil
             while let cursor = walk, cursor != handle {
@@ -120,14 +81,8 @@ extension Buffer.Linked where S: Store.Generational.`Protocol`, S: ~Copyable {
     }
 }
 
-// MARK: - Remove All
-
 extension Buffer.Linked where S: Store.Generational.`Protocol`, S: ~Copyable {
-    /// Removes all elements from the list.
-    ///
-    /// The node store is retained.
-    ///
-    /// - Complexity: O(n)
+
     @inlinable
     public mutating func removeAll<E: ~Copyable>()
     where S.Element == Node<E, N> {
@@ -135,12 +90,8 @@ extension Buffer.Linked where S: Store.Generational.`Protocol`, S: ~Copyable {
     }
 }
 
-// MARK: - Traversal
-
 extension Buffer.Linked where S: Store.Generational.`Protocol`, S: ~Copyable {
-    /// Calls the given closure for each element, front to back.
-    ///
-    /// - Complexity: O(n)
+
     @inlinable
     public func forEach<E: ~Copyable, Failure: Swift.Error>(
         _ body: (borrowing E) throws(Failure) -> Void
@@ -153,10 +104,6 @@ extension Buffer.Linked where S: Store.Generational.`Protocol`, S: ~Copyable {
         }
     }
 
-    /// Calls the given closure for each element, back to front.
-    ///
-    /// - Precondition: `N >= 2` (doubly-linked).
-    /// - Complexity: O(n)
     @inlinable
     public func forEachReversed<E: ~Copyable, Failure: Swift.Error>(
         _ body: (borrowing E) throws(Failure) -> Void
@@ -171,12 +118,8 @@ extension Buffer.Linked where S: Store.Generational.`Protocol`, S: ~Copyable {
     }
 }
 
-// MARK: - Peek
-
 extension Buffer.Linked where S: Store.Generational.`Protocol`, S: ~Copyable {
-    /// Peeks at the front element without removing it; `nil` result if the list is empty.
-    ///
-    /// - Complexity: O(1)
+
     @inlinable
     public func peekFront<E: ~Copyable, R, Failure: Swift.Error>(
         _ body: (borrowing E) throws(Failure) -> R
@@ -186,9 +129,6 @@ extension Buffer.Linked where S: Store.Generational.`Protocol`, S: ~Copyable {
         return try body(storage[handle].element)
     }
 
-    /// Peeks at the back element without removing it; `nil` result if the list is empty.
-    ///
-    /// - Complexity: O(1)
     @inlinable
     public func peekBack<E: ~Copyable, R, Failure: Swift.Error>(
         _ body: (borrowing E) throws(Failure) -> R

@@ -2,9 +2,6 @@ import Buffer_Linked_Primitives
 import Buffer_Linked_Primitives_Test_Support
 import Testing
 
-// MARK: - Fixtures
-
-/// ~Copyable element with identity + recording deinit (teardown-oracle observation).
 private struct Item: ~Copyable {
     let id: Int
     var value: Int
@@ -15,20 +12,16 @@ private struct Item: ~Copyable {
     deinit { Probe.recordDestroy(id) }
 }
 
-/// Serialized destruction recorder (the suite below is `.serialized`).
 private enum Probe {}
 
 extension Probe {
-    // SAFETY: only ever touched from this file's tests, and the enclosing suite is
-    // declared `.serialized`, so no two tests can race on `_destroyed`.
+
     nonisolated(unsafe) static var _destroyed: [Int] = []
     static func reset() { unsafe _destroyed = [] }
-    // swift-linter:disable:next compound identifier
-    // REASON: member of a private enum (Probe); no consumer-observable surface per the private-type carve-out.
+
     static func recordDestroy(_ id: Int) { unsafe _destroyed.append(id) }
     static var destroyed: [Int] { unsafe _destroyed }
-    // swift-linter:disable:next compound identifier
-    // REASON: member of a private enum (Probe); no consumer-observable surface per the private-type carve-out.
+
     static var destroyedSorted: [Int] { unsafe _destroyed.sorted() }
 }
 
@@ -38,14 +31,12 @@ struct `Buffer.Linked Tests` {
     @Suite struct `Edge Case` {}
     @Suite struct Integration {}
 
-    // MARK: - Insert / remove (all four combinations, doubly-linked)
-
     @Test
     func `insertFront and removeFront`() throws {
         var list: DoublyLinked<Int> = .init(minimumCapacity: 4)
         try list.insertFront(1)
         try list.insertFront(2)
-        try list.insertFront(3)  // 3, 2, 1
+        try list.insertFront(3)
         let c = list.count
         #expect(c == 3)
         #expect(list.removeFront() == 3)
@@ -61,7 +52,7 @@ struct `Buffer.Linked Tests` {
         var list: DoublyLinked<Int> = .init(minimumCapacity: 4)
         try list.insertBack(1)
         try list.insertBack(2)
-        try list.insertBack(3)  // 1, 2, 3
+        try list.insertBack(3)
         #expect(list.removeBack() == 3)
         #expect(list.removeBack() == 2)
         #expect(list.removeBack() == 1)
@@ -73,7 +64,7 @@ struct `Buffer.Linked Tests` {
         var list: DoublyLinked<Int> = .init(minimumCapacity: 4)
         try list.insertFront(1)
         try list.insertFront(2)
-        try list.insertFront(3)  // 3, 2, 1
+        try list.insertFront(3)
         #expect(list.removeBack() == 1)
         #expect(list.removeBack() == 2)
         #expect(list.removeBack() == 3)
@@ -84,13 +75,11 @@ struct `Buffer.Linked Tests` {
         var list: DoublyLinked<Int> = .init(minimumCapacity: 4)
         try list.insertBack(1)
         try list.insertBack(2)
-        try list.insertBack(3)  // 1, 2, 3
+        try list.insertBack(3)
         #expect(list.removeFront() == 1)
         #expect(list.removeFront() == 2)
         #expect(list.removeFront() == 3)
     }
-
-    // MARK: - Singly-linked (N == 1)
 
     @Test
     func `singly-linked removeBack walks`() throws {
@@ -98,15 +87,13 @@ struct `Buffer.Linked Tests` {
         try list.insertBack(1)
         try list.insertBack(2)
         try list.insertBack(3)
-        #expect(list.removeBack() == 3)  // O(n) walk
+        #expect(list.removeBack() == 3)
         #expect(list.removeBack() == 2)
         #expect(list.removeBack() == 1)
         #expect(list.removeBack() as Int? == nil)
         let empty = list.isEmpty
         #expect(empty)
     }
-
-    // MARK: - Traversal
 
     @Test
     func `forEach traverses front to back`() throws {
@@ -124,8 +111,6 @@ struct `Buffer.Linked Tests` {
         #expect(visited == [30, 20, 10])
     }
 
-    // MARK: - Peek
-
     @Test
     func `peekFront and peekBack`() throws {
         let list: DoublyLinked<Int> = try .init([10, 20, 30], minimumCapacity: 4)
@@ -134,10 +119,8 @@ struct `Buffer.Linked Tests` {
         #expect(front == 10)
         #expect(back == 30)
         let c = list.count
-        #expect(c == 3)  // peek does not remove
+        #expect(c == 3)
     }
-
-    // MARK: - Growth
 
     @Test
     func `growth preserves elements and order`() throws {
@@ -146,7 +129,7 @@ struct `Buffer.Linked Tests` {
         try list.insertBack(2)
         let full = list.isFull
         #expect(full)
-        list.ensureCapacity(8)  // relocating growth
+        list.ensureCapacity(8)
         let cap = list.capacity
         #expect(cap >= 8)
         try list.insertBack(3)
@@ -168,8 +151,6 @@ struct `Buffer.Linked Tests` {
         #expect(c == 1)
     }
 
-    // MARK: - Capacity limit
-
     @Test
     func `insert past capacity throws capacityExceeded`() throws {
         var list: DoublyLinked<Int> = .init(minimumCapacity: 2)
@@ -186,8 +167,6 @@ struct `Buffer.Linked Tests` {
         #expect(c == 2)
     }
 
-    // MARK: - Remove all
-
     @Test
     func `removeAll clears list and the store is reusable`() throws {
         var list: DoublyLinked<Int> = try .init([1, 2, 3], minimumCapacity: 4)
@@ -196,11 +175,9 @@ struct `Buffer.Linked Tests` {
         let empty = list.isEmpty
         #expect(c == 0)
         #expect(empty)
-        try list.insertBack(9)  // slots recycle
+        try list.insertBack(9)
         #expect(list.removeFront() == 9)
     }
-
-    // MARK: - Count tracking
 
     @Test
     func `count tracks inserts and removes`() throws {
@@ -221,8 +198,6 @@ struct `Buffer.Linked Tests` {
         #expect(empty)
     }
 
-    // MARK: - Teardown (the generational store destroys exactly the live nodes)
-
     @Test
     func `teardown destroys every live element exactly once`() throws {
         Probe.reset()
@@ -232,8 +207,8 @@ struct `Buffer.Linked Tests` {
             try list.insertBack(Item(2, value: 20))
             try list.insertFront(Item(3, value: 30))
             let mid = Probe.destroyed
-            #expect(mid.isEmpty)  // moves, not copies
-        }  // buffer dies → the generational oracle fires
+            #expect(mid.isEmpty)
+        }
         let ds = Probe.destroyedSorted
         #expect(ds == [1, 2, 3])
     }
@@ -252,16 +227,14 @@ struct `Buffer.Linked Tests` {
             let tid = taken.id
             #expect(tid == 7)
             let dMid = Probe.destroyed
-            #expect(dMid.isEmpty)  // still alive in `taken`
+            #expect(dMid.isEmpty)
             _ = consume taken
             let dTaken = Probe.destroyedSorted
             #expect(dTaken == [7])
         }
         let ds = Probe.destroyedSorted
-        #expect(ds == [7, 8])  // the remaining node via the oracle
+        #expect(ds == [7, 8])
     }
-
-    // MARK: - Move-only element surface (singly)
 
     @Test
     func `move-only elements flow through insert, peek, remove`() throws {
